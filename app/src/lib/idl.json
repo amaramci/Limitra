@@ -1,0 +1,785 @@
+{
+  "address": "9qQcnqLMemRQZJTFBkgULoAK6AwGVPdDcS9chXZmDTpM",
+  "metadata": {
+    "name": "smart_allowance_wallet",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Programmable wallet with AI-agent sub-wallets and spending policy enforcement"
+  },
+  "instructions": [
+    {
+      "name": "create_sub_wallet",
+      "discriminator": [
+        26,
+        53,
+        149,
+        246,
+        33,
+        84,
+        89,
+        245
+      ],
+      "accounts": [
+        {
+          "name": "main_wallet",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sub_wallet",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  117,
+                  98,
+                  95,
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "main_wallet"
+              },
+              {
+                "kind": "account",
+                "path": "main_wallet.sub_wallet_count",
+                "account": "MainWallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent_authority"
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "main_wallet"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "agent_description",
+          "type": "string"
+        },
+        {
+          "name": "policy",
+          "type": {
+            "defined": {
+              "name": "PolicyConfig"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_agent_transfer",
+      "docs": [
+        "Validate and execute a token transfer through policy enforcement.",
+        "This is the core security check — agents can only execute what policy allows."
+      ],
+      "discriminator": [
+        39,
+        248,
+        59,
+        29,
+        20,
+        189,
+        57,
+        113
+      ],
+      "accounts": [
+        {
+          "name": "sub_wallet",
+          "writable": true
+        },
+        {
+          "name": "source_token",
+          "writable": true
+        },
+        {
+          "name": "destination_token",
+          "writable": true
+        },
+        {
+          "name": "agent_authority",
+          "signer": true,
+          "relations": [
+            "sub_wallet"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "memo",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "initialize_main_wallet",
+      "discriminator": [
+        209,
+        248,
+        249,
+        47,
+        235,
+        180,
+        233,
+        252
+      ],
+      "accounts": [
+        {
+          "name": "main_wallet",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "pause_sub_wallet",
+      "discriminator": [
+        210,
+        87,
+        9,
+        230,
+        160,
+        240,
+        128,
+        35
+      ],
+      "accounts": [
+        {
+          "name": "main_wallet",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          },
+          "relations": [
+            "sub_wallet"
+          ]
+        },
+        {
+          "name": "sub_wallet",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "main_wallet"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "record_pnl",
+      "docs": [
+        "Record P&L for off-chain strategy tracking (called by agent after trade settles)"
+      ],
+      "discriminator": [
+        98,
+        235,
+        215,
+        253,
+        46,
+        94,
+        140,
+        14
+      ],
+      "accounts": [
+        {
+          "name": "sub_wallet",
+          "writable": true
+        },
+        {
+          "name": "agent_authority",
+          "signer": true,
+          "relations": [
+            "sub_wallet"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "pnl_delta",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "update_policy",
+      "discriminator": [
+        212,
+        245,
+        246,
+        7,
+        163,
+        151,
+        18,
+        57
+      ],
+      "accounts": [
+        {
+          "name": "main_wallet",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          },
+          "relations": [
+            "sub_wallet"
+          ]
+        },
+        {
+          "name": "sub_wallet",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "main_wallet"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_policy",
+          "type": {
+            "defined": {
+              "name": "PolicyConfig"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "MainWallet",
+      "discriminator": [
+        59,
+        202,
+        237,
+        78,
+        10,
+        218,
+        16,
+        236
+      ]
+    },
+    {
+      "name": "SubWallet",
+      "discriminator": [
+        39,
+        255,
+        78,
+        135,
+        56,
+        34,
+        196,
+        163
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "MainWalletCreated",
+      "discriminator": [
+        115,
+        58,
+        29,
+        80,
+        35,
+        174,
+        38,
+        1
+      ]
+    },
+    {
+      "name": "PnlRecorded",
+      "discriminator": [
+        100,
+        55,
+        111,
+        3,
+        169,
+        250,
+        12,
+        247
+      ]
+    },
+    {
+      "name": "PolicyUpdated",
+      "discriminator": [
+        225,
+        112,
+        112,
+        67,
+        95,
+        236,
+        245,
+        161
+      ]
+    },
+    {
+      "name": "SubWalletCreated",
+      "discriminator": [
+        4,
+        181,
+        217,
+        105,
+        200,
+        4,
+        101,
+        194
+      ]
+    },
+    {
+      "name": "TransactionExecuted",
+      "discriminator": [
+        211,
+        227,
+        168,
+        14,
+        32,
+        111,
+        189,
+        210
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Caller is not authorized to perform this action"
+    },
+    {
+      "code": 6001,
+      "name": "NameTooLong",
+      "msg": "Agent name must be 32 characters or fewer"
+    },
+    {
+      "code": 6002,
+      "name": "DescriptionTooLong",
+      "msg": "Agent description must be 128 characters or fewer"
+    },
+    {
+      "code": 6003,
+      "name": "TooManyTokens",
+      "msg": "Policy allows a maximum of 10 tokens"
+    },
+    {
+      "code": 6004,
+      "name": "TooManyProtocols",
+      "msg": "Policy allows a maximum of 10 protocols"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidLimit",
+      "msg": "Daily limit must be greater than zero"
+    },
+    {
+      "code": 6006,
+      "name": "TxSizeExceedsDaily",
+      "msg": "Max transaction size cannot exceed the daily limit"
+    },
+    {
+      "code": 6007,
+      "name": "ExceedsMaxTxSize",
+      "msg": "Transaction amount exceeds the max transaction size for this sub-wallet"
+    },
+    {
+      "code": 6008,
+      "name": "ExceedsDailyLimit",
+      "msg": "Transaction would exceed the daily spending limit for this sub-wallet"
+    },
+    {
+      "code": 6009,
+      "name": "TokenNotAllowed",
+      "msg": "Token is not in the allowed list for this sub-wallet"
+    },
+    {
+      "code": 6010,
+      "name": "SubWalletPaused",
+      "msg": "This sub-wallet has been paused by the owner"
+    },
+    {
+      "code": 6011,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "MainWallet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "sub_wallet_count",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MainWalletCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "main_wallet",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PnlRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sub_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "pnl_delta",
+            "type": "i64"
+          },
+          {
+            "name": "total_pnl",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PolicyConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "allowed_tokens",
+            "docs": [
+              "Whitelisted SPL token mints the agent may spend"
+            ],
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "allowed_protocols",
+            "docs": [
+              "Whitelisted program IDs (DEX routers, lending protocols, etc.)"
+            ],
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "daily_limit",
+            "docs": [
+              "Max total spend per 24h window (in token base units)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_tx_size",
+            "docs": [
+              "Max single-transaction spend"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "strategy_tag",
+            "docs": [
+              "Arbitrary strategy tag for off-chain filtering"
+            ],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PolicyUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sub_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "updater",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SubWallet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "main_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "agent_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "agent_description",
+            "type": "string"
+          },
+          {
+            "name": "policy",
+            "type": {
+              "defined": {
+                "name": "PolicyConfig"
+              }
+            }
+          },
+          {
+            "name": "daily_spent",
+            "type": "u64"
+          },
+          {
+            "name": "last_reset_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "total_transactions",
+            "type": "u64"
+          },
+          {
+            "name": "realized_pnl",
+            "type": "i64"
+          },
+          {
+            "name": "is_paused",
+            "type": "bool"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SubWalletCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "main_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "sub_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "agent_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TransactionExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sub_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "daily_spent",
+            "type": "u64"
+          },
+          {
+            "name": "daily_limit",
+            "type": "u64"
+          },
+          {
+            "name": "memo",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}

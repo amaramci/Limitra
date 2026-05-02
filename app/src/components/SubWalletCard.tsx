@@ -48,7 +48,7 @@ export function SubWalletCard({ wallet }: Props) {
           <h3 className="text-white font-semibold text-base truncate">{wallet.name}</h3>
           <p className="text-gray-400 text-xs mt-0.5 line-clamp-2">{wallet.agentDescription}</p>
         </div>
-        <div className={`text-right flex-shrink-0 ${pnlPositive ? "text-brand-400" : "text-red-400"}`}>
+        <div className={`text-right flex-shrink-0 ${pnlPositive ? "text-profit" : "text-loss"}`}>
           <div className="flex items-center gap-1 justify-end">
             {pnlPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
             <span className="text-lg font-bold font-mono">
@@ -69,7 +69,7 @@ export function SubWalletCard({ wallet }: Props) {
         </div>
         <div className="h-1.5 bg-surface-600 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${dailyPct > 80 ? "bg-amber-400" : "bg-brand-500"}`}
+            className={`h-full rounded-full transition-all ${dailyPct > 80 ? "bg-amber-500" : "bg-brand-500"}`}
             style={{ width: `${Math.min(dailyPct, 100)}%` }}
           />
         </div>

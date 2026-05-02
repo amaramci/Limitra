@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChatMessage, SubWallet, ToolCallRecord } from "@/lib/types";
+import { loadTransactions } from "@/lib/storage";
 import {
   Send,
   Bot,
@@ -106,7 +107,8 @@ export function AgentChat({ wallet }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          walletId: wallet.id,
+          wallet,
+          transactions: loadTransactions(wallet.id),
           messages: nextMessages,
         }),
       });

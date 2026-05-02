@@ -25,7 +25,7 @@ export default function HomePage() {
       <div className="max-w-4xl mx-auto px-6 pt-24 pb-16 text-center">
         <div className="inline-flex items-center gap-2 text-xs text-brand-400 bg-brand-500/10 border border-brand-500/20 px-3 py-1.5 rounded-full mb-6">
           <Zap size={11} />
-          Built on Solana · Powered by Claude AI
+          Built on Solana
         </div>
         <h1 className="text-5xl font-bold mb-6 leading-tight">
           Give your AI agents{" "}
