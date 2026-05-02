@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { PolicyConfig, KNOWN_TOKENS, KNOWN_PROTOCOLS, StrategyTag } from "@/lib/types";
-import { X, Check } from "lucide-react";
+import { X, Check, Loader2 } from "lucide-react";
 
 interface Props {
   onClose: () => void;
-  onCreate: (name: string, description: string, policy: PolicyConfig) => void;
+  onCreate: (name: string, description: string, policy: PolicyConfig, agentPubkey: string, tempId: string) => Promise<void>;
 }
 
 const DEFAULT_POLICY: PolicyConfig = {
@@ -33,6 +33,8 @@ export function CreateAgentModal({ onClose, onCreate }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [policy, setPolicy] = useState<PolicyConfig>(DEFAULT_POLICY);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function toggleToken(mint: string) {
     setPolicy((p) => ({
@@ -52,10 +54,23 @@ export function CreateAgentModal({ onClose, onCreate }: Props) {
     }));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!name.trim()) return;
-    onCreate(name.trim(), description.trim(), policy);
-    onClose();
+    setSubmitting(true);
+    setError(null);
+    try {
+      // 1. Generate server-side keypair
+      const res = await fetch("/api/agents/prepare", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to generate agent keypair");
+      const { tempId, agentPubkey } = await res.json();
+      // 2. Pass to parent — parent builds Anchor tx, signs in Phantom, then calls /api/agents/finalize
+      await onCreate(name.trim(), description.trim(), policy, agentPubkey, tempId);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -199,13 +214,17 @@ export function CreateAgentModal({ onClose, onCreate }: Props) {
         </div>
 
         {/* Footer */}
+        {error && (
+          <div className="px-5 pb-2 text-loss text-xs">{error}</div>
+        )}
         <div className="flex gap-3 p-5 border-t border-surface-600">
           <button
             onClick={handleSubmit}
-            disabled={!name.trim() || policy.allowedTokens.length === 0}
-            className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors"
+            disabled={!name.trim() || policy.allowedTokens.length === 0 || submitting}
+            className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
-            Create agent
+            {submitting && <Loader2 size={14} className="animate-spin" />}
+            {submitting ? "Creating…" : "Create agent"}
           </button>
           <button
             onClick={onClose}

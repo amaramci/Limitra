@@ -213,7 +213,9 @@ export default function DashboardPage() {
       {showCreate && (
         <CreateAgentModal
           onClose={() => setShowCreate(false)}
-          onCreate={(name, desc, policy) => create(name, desc, policy)}
+          onCreate={(name, desc, policy, agentPubkey, tempId) =>
+            create(name, desc, policy, agentPubkey, tempId)
+          }
         />
       )}
     </div>

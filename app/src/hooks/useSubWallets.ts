@@ -40,27 +40,39 @@ export function useSubWallets() {
   async function create(
     name: string,
     description: string,
-    policy: PolicyConfig
-  ): Promise<SubWallet | null> {
-    if (!publicKey || !anchorWallet) return null;
+    policy: PolicyConfig,
+    agentPubkey: string,
+    tempId: string
+  ): Promise<void> {
+    if (!publicKey || !anchorWallet) return;
     setLoading(true);
     setError(null);
     try {
       const program = getProgram(anchorWallet);
-      // agent authority = owner for now (user controls the agent key)
       const { subWalletPDA } = await createOnChain(
         program,
         publicKey,
         name,
         description,
         policy,
-        publicKey
+        new PublicKey(agentPubkey)
       );
+
+      // Link server-side keypair to the on-chain PDA
+      await fetch("/api/agents/finalize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tempId,
+          subWalletId: subWalletPDA.toBase58(),
+          ownerPubkey: publicKey.toBase58(),
+          name,
+        }),
+      });
+
       await refresh();
-      return wallets.find((w) => w.id === subWalletPDA.toBase58()) ?? null;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Transaction failed");
-      return null;
     } finally {
       setLoading(false);
     }
