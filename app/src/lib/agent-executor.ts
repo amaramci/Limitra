@@ -72,7 +72,8 @@ interface TradeDecision {
 async function getClaudeDecision(
   agent: AgentContext,
   policy: OnChainPolicy,
-  prices: Record<string, number>
+  prices: Record<string, number>,
+  balances: Record<string, number>
 ): Promise<TradeDecision> {
   const allowedSymbols = policy.allowedTokens
     .map((m) => KNOWN_TOKENS.find((t) => t.mint === m)?.symbol)
@@ -82,24 +83,41 @@ async function getClaudeDecision(
     .map((s) => `${s}: $${prices[s]?.toFixed(4) ?? "N/A"}`)
     .join(", ");
 
+  const balanceLines = allowedSymbols
+    .map((s) => {
+      const bal = balances[s] ?? 0;
+      const usdVal = bal * (prices[s] ?? 0);
+      return `${s}: ${bal.toFixed(s === "USDC" ? 2 : 4)} ($${usdVal.toFixed(2)})`;
+    })
+    .join(", ");
+
   const remainingDaily = (policy.dailyLimit - policy.dailySpent) / 1e6;
   const maxTx = policy.maxTxSize / 1e6;
+
+  const hasSol = (balances["SOL"] ?? 0) > 0.1;
+  const hasUsdc = (balances["USDC"] ?? 0) > 1;
+  const rebalanceHint = hasSol && !hasUsdc
+    ? `\nIMPORTANT: You hold SOL but no USDC. Sell some SOL for USDC now to establish a trading position. Use fromToken: "SOL", toToken: "USDC".`
+    : hasUsdc && !hasSol
+    ? `\nIMPORTANT: You hold USDC but no SOL. Buy SOL now. Use fromToken: "USDC", toToken: "SOL".`
+    : "";
 
   const prompt = `You are an autonomous ${policy.strategyTag} trading agent named "${agent.name}" running on Solana devnet.
 
 Current market prices: ${priceLines}
+Agent wallet balances: ${balanceLines}
 Strategy: ${policy.strategyTag}
 Allowed tokens: ${allowedSymbols.join(", ")}
 Daily limit remaining: $${remainingDaily.toFixed(2)}
 Max transaction size: $${maxTx.toFixed(2)}
-
-Based on current prices and your strategy, decide what to do RIGHT NOW.
-You must respond with valid JSON only, no other text:
+${rebalanceHint}
+You MUST trade unless there is a strong reason not to. "hold" is only acceptable if daily limit is exhausted.
+Respond with valid JSON only, no other text:
 {
   "action": "buy" | "sell" | "hold",
-  "fromToken": "USDC",
-  "toToken": "SOL",
-  "amountUsd": 25,
+  "fromToken": "SOL",
+  "toToken": "USDC",
+  "amountUsd": 50,
   "reasoning": "brief explanation"
 }
 
@@ -198,14 +216,37 @@ export async function runAgent(agent: AgentContext): Promise<{
     if (!policy) return { action: "skip", reasoning: "Could not fetch on-chain policy" };
     if (policy.isPaused) return { action: "skip", reasoning: "Agent is paused" };
 
-    // 2. Fetch real prices from Jupiter
+    // 2. Fetch real prices from CoinGecko
     const allowedSymbols = policy.allowedTokens
       .map((m) => KNOWN_TOKENS.find((t) => t.mint === m)?.symbol)
       .filter(Boolean) as string[];
     const prices = await fetchPricesBySymbol(allowedSymbols);
 
+    // 2b. Fetch agent wallet token balances
+    const agentBalances: Record<string, number> = {};
+    try {
+      const keypairForBalance = await loadAgentKeypair(agent.subWalletId);
+      const connection = getConnection();
+      const solBalance = await connection.getBalance(keypairForBalance.publicKey);
+      agentBalances["SOL"] = solBalance / 1e9;
+
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+        keypairForBalance.publicKey,
+        { programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }
+      );
+      for (const { account } of tokenAccounts.value) {
+        const info = account.data.parsed?.info;
+        const mint = info?.mint as string | undefined;
+        const amount = info?.tokenAmount?.uiAmount as number | undefined;
+        if (mint && amount !== undefined) {
+          const sym = KNOWN_TOKENS.find((t) => t.mint === mint)?.symbol;
+          if (sym) agentBalances[sym] = amount;
+        }
+      }
+    } catch { /* balances stay empty */ }
+
     // 3. Claude decides what to do
-    const decision = await getClaudeDecision(agent, policy, prices);
+    const decision = await getClaudeDecision(agent, policy, prices, agentBalances);
     if (decision.action === "hold") {
       return { action: "hold", reasoning: decision.reasoning };
     }
@@ -226,8 +267,7 @@ export async function runAgent(agent: AgentContext): Promise<{
 
     // 6. Load agent keypair and execute swap
     const keypair = await loadAgentKeypair(agent.subWalletId);
-    const connection = getConnection();
-    const result = await executeSwap(connection, keypair, quote);
+    const result = await executeSwap(getConnection(), keypair, quote);
 
     // 7. Record success
     await recordTx(agent.subWalletId, decision, "success", {

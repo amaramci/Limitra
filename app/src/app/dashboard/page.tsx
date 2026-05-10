@@ -6,11 +6,10 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useSubWallets } from "@/hooks/useSubWallets";
 import { useSolanaBalances } from "@/hooks/useSolanaBalances";
 import { SubWalletCard } from "@/components/SubWalletCard";
-import { TransactionHistory } from "@/components/TransactionHistory";
+import { AgentTransactionHistory } from "@/components/AgentTransactionHistory";
 import { WalletButton } from "@/components/WalletButton";
 import { CreateAgentModal } from "@/components/CreateAgentModal";
-import { loadTransactions } from "@/lib/storage";
-import { Transaction } from "@/lib/types";
+import { useAgentTransactions } from "@/hooks/useAgentTransactions";
 import { explorerAccount } from "@/lib/program";
 import {
   Shield,
@@ -27,14 +26,29 @@ import {
 
 export default function DashboardPage() {
   const { publicKey } = useWallet();
-  const { wallets, loading, error, create } = useSubWallets();
+  const { wallets, loading, error, create, updatePolicy } = useSubWallets();
   const { sol, tokens } = useSolanaBalances();
   const [showCreate, setShowCreate] = useState(false);
 
-  const allTxs: Transaction[] = wallets.flatMap((w) => loadTransactions(w.id));
-  const totalPnl = wallets.reduce((s, w) => s + w.realizedPnl / 1e6, 0);
-  const totalTxs = wallets.reduce((s, w) => s + w.totalTransactions, 0);
-  const blockedTxs = allTxs.filter((t) => t.status === "blocked").length;
+  const walletIds = wallets.map((w) => w.id);
+  const { txs: agentTxs } = useAgentTransactions(walletIds);
+
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todayTxs = agentTxs.filter((t) => t.status === "success" && new Date(t.created_at) >= todayStart);
+
+  const dailySpentByWallet = todayTxs.reduce<Record<string, number>>((acc, t) => {
+    acc[t.sub_wallet_id] = (acc[t.sub_wallet_id] ?? 0) + Number(t.amount_usd);
+    return acc;
+  }, {});
+
+  const tradeCountByWallet = agentTxs.filter((t) => t.status === "success").reduce<Record<string, number>>((acc, t) => {
+    acc[t.sub_wallet_id] = (acc[t.sub_wallet_id] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const totalPnl = 0; // tracked on-chain; simulated swaps have no real PnL
+  const totalTxs = agentTxs.length;
+  const blockedTxs = agentTxs.filter((t) => t.status === "blocked").length;
   const activeAgents = wallets.filter((w) => !w.isPaused).length;
 
   return (
@@ -187,21 +201,27 @@ export default function DashboardPage() {
                   Agents ({wallets.length})
                 </h2>
                 {wallets.map((w) => (
-                  <SubWalletCard key={w.id} wallet={w} />
+                  <SubWalletCard
+                    key={w.id}
+                    wallet={w}
+                    onUpdatePolicy={updatePolicy}
+                    dailySpentOverride={dailySpentByWallet[w.id] ?? 0}
+                    tradeCountOverride={tradeCountByWallet[w.id] ?? 0}
+                  />
                 ))}
               </div>
               <div className="lg:col-span-2">
                 <div className="bg-surface-800 border border-surface-600 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-white font-semibold text-sm">Recent activity</h2>
-                    <span className="text-gray-500 text-xs">{allTxs.length} transactions</span>
+                    <span className="text-gray-500 text-xs">{agentTxs.length} transactions</span>
                   </div>
-                  {allTxs.length === 0 ? (
+                  {agentTxs.length === 0 ? (
                     <p className="text-gray-500 text-sm text-center py-12">
-                      No transactions yet. Open an agent and chat with it.
+                      No transactions yet. Agent will trade automatically.
                     </p>
                   ) : (
-                    <TransactionHistory transactions={allTxs} compact />
+                    <AgentTransactionHistory txs={agentTxs} />
                   )}
                 </div>
               </div>

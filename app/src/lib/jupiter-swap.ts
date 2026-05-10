@@ -5,9 +5,10 @@ import {
 } from "@solana/web3.js";
 import { KNOWN_TOKENS } from "./types";
 
-const QUOTE_API = "https://quote-api.jup.ag/v6/quote";
-const SWAP_API = "https://quote-api.jup.ag/v6/swap";
-const SLIPPAGE_BPS = 50; // 0.5%
+const QUOTE_API = "https://api.jup.ag/swap/v1/quote";
+const SWAP_API = "https://api.jup.ag/swap/v1/swap";
+const SLIPPAGE_BPS = 50;
+const SIMULATE = process.env.NEXT_PUBLIC_SOLANA_NETWORK === "devnet";
 
 export interface SwapQuote {
   inputMint: string;
@@ -39,11 +40,30 @@ export async function getQuote(
   const inputMint = getMint(fromSymbol);
   const outputMint = getMint(toSymbol);
 
+  if (SIMULATE) {
+    const { fetchPricesBySymbol } = await import("./jupiter");
+    const prices = await fetchPricesBySymbol([fromSymbol, toSymbol]);
+    const fromToken = KNOWN_TOKENS.find((t) => t.symbol === fromSymbol)!;
+    const toToken = KNOWN_TOKENS.find((t) => t.symbol === toSymbol)!;
+    const fromPrice = prices[fromSymbol] ?? 1;
+    const toPrice = prices[toSymbol] ?? 1;
+    const amountHuman = Number(amountBaseUnits) / 10 ** fromToken.decimals;
+    const outHuman = (amountHuman * fromPrice) / toPrice;
+    const outBaseUnits = BigInt(Math.floor(outHuman * 10 ** toToken.decimals));
+    return {
+      inputMint,
+      outputMint,
+      inAmount: amountBaseUnits.toString(),
+      outAmount: outBaseUnits.toString(),
+      priceImpactPct: "0.01",
+      rawQuote: { simulated: true },
+    };
+  }
+
   const url = `${QUOTE_API}?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountBaseUnits}&slippageBps=${SLIPPAGE_BPS}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Jupiter quote failed: ${await res.text()}`);
   const quote = await res.json();
-
   return {
     inputMint,
     outputMint,
@@ -59,7 +79,15 @@ export async function executeSwap(
   agentKeypair: Keypair,
   quote: SwapQuote
 ): Promise<SwapResult> {
-  // Build swap transaction via Jupiter
+  if (SIMULATE) {
+    const sig = `sim_${Date.now()}_${agentKeypair.publicKey.toBase58().slice(0, 8)}`;
+    return {
+      txSignature: sig,
+      inAmount: BigInt(quote.inAmount),
+      outAmount: BigInt(quote.outAmount),
+    };
+  }
+
   const swapRes = await fetch(SWAP_API, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -75,10 +103,7 @@ export async function executeSwap(
   if (!swapRes.ok) throw new Error(`Jupiter swap build failed: ${await swapRes.text()}`);
   const { swapTransaction } = await swapRes.json();
 
-  // Deserialize, sign, submit
-  const tx = VersionedTransaction.deserialize(
-    Buffer.from(swapTransaction, "base64")
-  );
+  const tx = VersionedTransaction.deserialize(Buffer.from(swapTransaction, "base64"));
   tx.sign([agentKeypair]);
 
   const sig = await connection.sendRawTransaction(tx.serialize(), {
@@ -86,12 +111,8 @@ export async function executeSwap(
     maxRetries: 3,
   });
 
-  // Confirm
   const latestBlockhash = await connection.getLatestBlockhash();
-  await connection.confirmTransaction({
-    signature: sig,
-    ...latestBlockhash,
-  });
+  await connection.confirmTransaction({ signature: sig, ...latestBlockhash });
 
   return {
     txSignature: sig,

@@ -1,11 +1,16 @@
 "use client";
 
-import { SubWallet, KNOWN_TOKENS, KNOWN_PROTOCOLS } from "@/lib/types";
-import { TrendingUp, TrendingDown, Pause, Zap, Shield, MessageSquare } from "lucide-react";
+import { useState } from "react";
+import { SubWallet, KNOWN_TOKENS, KNOWN_PROTOCOLS, PolicyConfig } from "@/lib/types";
+import { TrendingUp, TrendingDown, Pause, Zap, Shield, MessageSquare, Settings, X } from "lucide-react";
 import Link from "next/link";
+import { PolicyEditor } from "./PolicyEditor";
 
 interface Props {
   wallet: SubWallet;
+  onUpdatePolicy?: (wallet: SubWallet, policy: PolicyConfig) => Promise<void>;
+  dailySpentOverride?: number;  // in USD
+  tradeCountOverride?: number;
 }
 
 const STRATEGY_COLORS: Record<string, string> = {
@@ -17,10 +22,14 @@ const STRATEGY_COLORS: Record<string, string> = {
   custom: "text-gray-400 bg-gray-400/10",
 };
 
-export function SubWalletCard({ wallet }: Props) {
+export function SubWalletCard({ wallet, onUpdatePolicy, dailySpentOverride, tradeCountOverride }: Props) {
+  const [showEdit, setShowEdit] = useState(false);
+  const [saving, setSaving] = useState(false);
   const pnl = wallet.realizedPnl / 1e6;
   const pnlPositive = pnl >= 0;
-  const dailyPct = (wallet.dailySpent / wallet.policy.dailyLimit) * 100;
+  const dailySpentUsd = dailySpentOverride ?? wallet.dailySpent / 1e6;
+  const dailyPct = (dailySpentUsd / (wallet.policy.dailyLimit / 1e6)) * 100;
+  const tradeCount = tradeCountOverride ?? wallet.totalTransactions;
   const allowedSymbols = wallet.policy.allowedTokens
     .map((m) => KNOWN_TOKENS.find((t) => t.mint === m)?.symbol ?? m.slice(0, 6))
     .slice(0, 3);
@@ -64,7 +73,7 @@ export function SubWalletCard({ wallet }: Props) {
         <div className="flex justify-between text-xs text-gray-400 mb-1.5">
           <span>Daily spend</span>
           <span className="font-mono">
-            ${(wallet.dailySpent / 1e6).toFixed(0)} / ${(wallet.policy.dailyLimit / 1e6).toFixed(0)}
+            ${dailySpentUsd.toFixed(0)} / ${(wallet.policy.dailyLimit / 1e6).toFixed(0)}
           </span>
         </div>
         <div className="h-1.5 bg-surface-600 rounded-full overflow-hidden">
@@ -78,7 +87,7 @@ export function SubWalletCard({ wallet }: Props) {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-surface-700 rounded-xl p-3 text-center">
-          <div className="text-white font-mono font-semibold text-sm">{wallet.totalTransactions}</div>
+          <div className="text-white font-mono font-semibold text-sm">{tradeCount}</div>
           <div className="text-gray-500 text-xs mt-0.5">Trades</div>
         </div>
         <div className="bg-surface-700 rounded-xl p-3 text-center">
@@ -108,13 +117,52 @@ export function SubWalletCard({ wallet }: Props) {
       </div>
 
       {/* Actions */}
-      <Link
-        href={`/agent/${wallet.id}`}
-        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 text-sm font-medium transition-colors border border-brand-500/20 hover:border-brand-500/40"
-      >
-        <MessageSquare size={14} />
-        Chat with agent
-      </Link>
+      <div className="flex gap-2">
+        <Link
+          href={`/agent/${wallet.id}`}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 text-sm font-medium transition-colors border border-brand-500/20 hover:border-brand-500/40"
+        >
+          <MessageSquare size={14} />
+          Chat
+        </Link>
+        {onUpdatePolicy && (
+          <button
+            onClick={() => setShowEdit(true)}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-surface-700 text-gray-400 hover:text-white text-sm transition-colors border border-surface-600 hover:border-surface-500"
+          >
+            <Settings size={14} />
+          </button>
+        )}
+      </div>
+
+      {showEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowEdit(false)} />
+          <div className="relative bg-surface-800 border border-surface-600 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-surface-600">
+              <h2 className="text-white font-semibold">Edit policy — {wallet.name}</h2>
+              <button onClick={() => setShowEdit(false)} className="text-gray-400 hover:text-white transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5">
+              <PolicyEditor
+                policy={wallet.policy}
+                onSave={async (newPolicy) => {
+                  setSaving(true);
+                  try {
+                    await onUpdatePolicy?.(wallet, newPolicy);
+                    setShowEdit(false);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              />
+              {saving && <p className="text-xs text-gray-400 mt-3 text-center">Waiting for Phantom confirmation…</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
