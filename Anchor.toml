@@ -3,10 +3,10 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-smart_allowance_wallet = "SAWa11et1111111111111111111111111111111111"
+smart_allowance_wallet = "9qQcnqLMemRQZJTFBkgULoAK6AwGVPdDcS9chXZmDTpM"
 
 [programs.devnet]
-smart_allowance_wallet = "SAWa11et1111111111111111111111111111111111"
+smart_allowance_wallet = "9qQcnqLMemRQZJTFBkgULoAK6AwGVPdDcS9chXZmDTpM"
 
 [registry]
 url = "https://api.apr.dev"

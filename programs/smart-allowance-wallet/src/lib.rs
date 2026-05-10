@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount, Transfer, transfer};
 use anchor_spl::associated_token::AssociatedToken;
 
-declare_id!("SAWa11et1111111111111111111111111111111111");
+declare_id!("9qQcnqLMemRQZJTFBkgULoAK6AwGVPdDcS9chXZmDTpM");
 
 pub mod errors;
 pub mod state;
