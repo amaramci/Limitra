@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import webpack from "webpack";
 
 const nextConfig: NextConfig = {
   webpack: (config) => {
@@ -7,8 +8,10 @@ const nextConfig: NextConfig = {
       fs: false,
       net: false,
       tls: false,
-      "pino-pretty": false,
     };
+    config.plugins.push(
+      new webpack.IgnorePlugin({ resourceRegExp: /^pino-pretty$/ })
+    );
     return config;
   },
 };
