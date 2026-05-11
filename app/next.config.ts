@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pino", "pino-pretty"],
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       net: false,
       tls: false,
     };
+    config.resolve.alias["pino-pretty"] = path.resolve(__dirname, "pino-pretty-stub.js");
     return config;
   },
 };
