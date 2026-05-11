@@ -5,6 +5,7 @@ import { WalletProvider } from "@/components/WalletProvider";
 export const metadata: Metadata = {
   title: "Smart Allowance Wallet",
   description: "Programmable wallet with restricted sub-wallets for AI agents",
+  icons: { icon: "/logo.svg" },
 };
 
 export default function RootLayout({

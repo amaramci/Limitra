@@ -12,7 +12,6 @@ import { CreateAgentModal } from "@/components/CreateAgentModal";
 import { useAgentTransactions } from "@/hooks/useAgentTransactions";
 import { explorerAccount } from "@/lib/program";
 import {
-  Shield,
   TrendingUp,
   TrendingDown,
   Activity,
@@ -59,9 +58,7 @@ export default function DashboardPage() {
             <ArrowLeft size={16} />
           </Link>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-brand-500/20 border border-brand-500/40 rounded-lg flex items-center justify-center">
-              <Shield size={13} className="text-brand-400" />
-            </div>
+            <img src="/logo.svg" alt="logo" className="w-7 h-7" />
             <span className="font-semibold text-white">SmartAllowance</span>
           </div>
           <span className="text-gray-600">/</span>

@@ -7,9 +7,7 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="border-b border-surface-700 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-brand-500/20 border border-brand-500/40 rounded-lg flex items-center justify-center">
-            <Shield size={16} className="text-brand-400" />
-          </div>
+          <img src="/logo.svg" alt="logo" className="w-8 h-8" />
           <span className="font-semibold text-white">SmartAllowance</span>
         </div>
         <Link

@@ -30,3 +30,9 @@ Thumbs.db
 # Build artifacts
 dist/
 build/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Claude
+.claude/
