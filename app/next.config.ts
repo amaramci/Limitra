@@ -1,15 +1,16 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
-  webpack: (config) => {
+  webpack: (config, { webpack }) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
       net: false,
       tls: false,
     };
-    config.resolve.alias["pino-pretty"] = path.resolve(__dirname, "pino-pretty-stub.js");
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(/pino-pretty/, require.resolve("./pino-pretty-stub.js"))
+    );
     return config;
   },
 };
