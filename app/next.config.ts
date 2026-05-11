@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
-import webpack from "webpack";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["pino", "pino-pretty"],
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -9,9 +9,6 @@ const nextConfig: NextConfig = {
       net: false,
       tls: false,
     };
-    config.plugins.push(
-      new webpack.IgnorePlugin({ resourceRegExp: /^pino-pretty$/ })
-    );
     return config;
   },
 };
