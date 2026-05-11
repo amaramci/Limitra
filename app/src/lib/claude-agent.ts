@@ -3,7 +3,7 @@ import { SubWallet, Transaction, KNOWN_TOKENS, KNOWN_PROTOCOLS } from "./types";
 
 const client = new Anthropic();
 
-// ── Tool definitions — each tool is pre-filtered by the sub-wallet's policy ──
+// Tool definitions — filtered by the sub-wallet policy
 
 function buildTools(wallet: SubWallet): Anthropic.Tool[] {
   const allowedTokenSymbols = wallet.policy.allowedTokens
@@ -114,7 +114,7 @@ function buildTools(wallet: SubWallet): Anthropic.Tool[] {
   ];
 }
 
-// ── Tool executor — validates policy before simulating execution ───────────
+// Tool executor — checks policy before running
 
 export function executeAgentTool(
   toolName: string,
@@ -306,10 +306,10 @@ export function executeAgentTool(
       const suggestions = [];
 
       if (wallet.dailySpent / wallet.policy.dailyLimit > 0.8) {
-        issues.push("Daily limit nearly exhausted — consider increasing limit or reducing position sizes");
+        issues.push("Daily limit almost used up. Raise the limit or reduce trade sizes.");
       }
       if (pnl < 0) {
-        issues.push("Net negative P&L — strategy parameters may need tuning");
+        issues.push("P&L is negative. Strategy may need adjusting.");
         suggestions.push(`Reduce max tx size from $${(wallet.policy.maxTxSize / 1e6).toFixed(0)} to $${(wallet.policy.maxTxSize / 1e6 * 0.5).toFixed(0)} to limit downside per trade`);
         suggestions.push("Consider adding stop-loss logic or tighter entry conditions");
       }
@@ -366,15 +366,15 @@ export function executeAgentTool(
           field: "isPaused",
           current: "true",
           suggested: "false",
-          reason: "Consider resuming — pausing limits potential gains",
+          reason: "Agent is paused. Resume it to allow trading.",
         });
       }
 
       return {
         blocked: false,
         result: {
-          suggestions: changes.length ? changes : [{ field: "none", current: "—", suggested: "—", reason: "Current policy looks well-tuned for this strategy" }],
-          disclaimer: "These are automated suggestions. You as the main wallet owner have final control over all policy changes.",
+          suggestions: changes.length ? changes : [{ field: "none", current: "-", suggested: "-", reason: "Policy looks good for this strategy." }],
+          disclaimer: "These are suggestions only. You control all policy changes.",
         },
       };
     }
@@ -398,14 +398,14 @@ export async function runAgentChat(
 
 Your strategy: ${wallet.agentDescription}
 
-You operate under strict policy constraints enforced ON-CHAIN by the smart contract. You CANNOT bypass them — any attempt will be blocked by the Solana program before execution:
+You work under policy rules stored on Solana. You cannot bypass them. Any violation is blocked on-chain:
 - Allowed tokens: ${wallet.policy.allowedTokens.map((m) => KNOWN_TOKENS.find((t) => t.mint === m)?.symbol ?? m.slice(0, 8)).join(", ")}
 - Allowed protocols: ${wallet.policy.allowedProtocols.map((p) => KNOWN_PROTOCOLS.find((k) => k.programId === p)?.name ?? p.slice(0, 8)).join(", ")}
 - Daily spending limit: $${(wallet.policy.dailyLimit / 1e6).toFixed(2)}
 - Max transaction size: $${(wallet.policy.maxTxSize / 1e6).toFixed(2)}
 - Status: ${wallet.isPaused ? "PAUSED (cannot execute trades)" : "Active"}
 
-When the user asks what you can do, explain your strategy and constraints. When asked to trade, use your tools and explain your reasoning. If a trade is blocked, clearly explain why — it's the smart contract enforcing the policy, not you refusing. You are transparent about your limitations.
+When the user asks what you can do, explain your strategy and limits. When asked to trade, use your tools and explain why. If a trade is blocked, say why. It is the smart contract blocking it, not you.
 
 Realized P&L so far: ${wallet.realizedPnl >= 0 ? "+" : ""}$${(wallet.realizedPnl / 1e6).toFixed(2)}
 Total transactions: ${wallet.totalTransactions}
@@ -417,7 +417,7 @@ Be direct, data-driven, and honest about both wins and losses. When you see issu
 
   let currentMessages = [...messages];
 
-  // Agentic loop — Claude can call multiple tools
+  // Loop until Claude finishes (may call multiple tools)
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const response = await client.messages.create({
@@ -463,7 +463,7 @@ Be direct, data-driven, and honest about both wins and losses. When you see issu
         });
 
         const content = blocked
-          ? `POLICY VIOLATION — Transaction blocked by smart contract: ${blockedReason}`
+          ? `BLOCKED by policy: ${blockedReason}`
           : JSON.stringify(result, null, 2);
 
         toolResults.push({

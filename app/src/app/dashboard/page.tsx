@@ -182,7 +182,7 @@ export default function DashboardPage() {
               </div>
               <h3 className="text-white font-medium mb-2">No agents yet</h3>
               <p className="text-gray-500 text-sm max-w-xs mb-5">
-                Create your first AI agent sub-wallet. The policy is stored on-chain — your agent literally cannot exceed it.
+                Create your first AI agent. The policy is stored on Solana. Your agent cannot go over its limits.
               </p>
               <button
                 onClick={() => setShowCreate(true)}

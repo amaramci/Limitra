@@ -140,7 +140,7 @@ export function SubWalletCard({ wallet, onUpdatePolicy, dailySpentOverride, trad
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowEdit(false)} />
           <div className="relative bg-surface-800 border border-surface-600 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-surface-600">
-              <h2 className="text-white font-semibold">Edit policy — {wallet.name}</h2>
+              <h2 className="text-white font-semibold">Edit policy: {wallet.name}</h2>
               <button onClick={() => setShowEdit(false)} className="text-gray-400 hover:text-white transition-colors">
                 <X size={18} />
               </button>

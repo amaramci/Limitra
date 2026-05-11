@@ -35,9 +35,8 @@ export default function HomePage() {
           <span className="text-red-400">your wallet</span>
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-10">
-          Create restricted sub-wallets for each AI agent or strategy. Define exactly what tokens
-          they can trade, which protocols they can use, and how much they can spend — enforced
-          on-chain by a Solana smart contract.
+          Create a sub-wallet for each AI agent. Set which tokens it can trade, which protocols
+          it can use, and how much it can spend. The rules are stored on Solana and cannot be bypassed.
         </p>
         <div className="flex items-center justify-center gap-4">
           <Link
@@ -63,22 +62,22 @@ export default function HomePage() {
             {
               icon: <Lock size={20} className="text-brand-400" />,
               title: "On-chain enforcement",
-              desc: "Policy restrictions are validated by the Solana smart contract, not client-side code. Agents literally cannot exceed their limits.",
+              desc: "Rules are checked by the Solana smart contract, not the app. Agents cannot go over their limits.",
             },
             {
               icon: <Bot size={20} className="text-brand-400" />,
               title: "Claude AI agents",
-              desc: "Each sub-wallet has a Claude-powered agent that trades within its assigned policy. Chat with your agents to understand their decisions.",
+              desc: "Each sub-wallet has a Claude agent that trades within its policy. Chat with your agent to see what it is doing.",
             },
             {
               icon: <Shield size={20} className="text-brand-400" />,
               title: "Granular permissions",
-              desc: "Whitelist specific tokens, protocols (DEXs, lending), daily limits, and max transaction sizes per agent.",
+              desc: "Set allowed tokens, protocols, daily limits, and max trade size per agent.",
             },
             {
               icon: <BarChart2 size={20} className="text-brand-400" />,
               title: "Performance dashboard",
-              desc: "Track P&L per agent, see blocked transactions, compare strategies, and get AI-powered suggestions for tuning parameters.",
+              desc: "Track P&L per agent, see blocked trades, and get suggestions for improving your strategy.",
             },
           ].map((f) => (
             <div key={f.title} className="bg-surface-800 border border-surface-600 rounded-2xl p-5">
@@ -99,17 +98,17 @@ export default function HomePage() {
               {
                 step: "01",
                 title: "Create a sub-wallet",
-                desc: "Define a policy: which tokens, which protocols, daily budget, and max per trade. Each sub-wallet is a PDA on Solana.",
+                desc: "Set which tokens, protocols, daily budget, and max per trade. The sub-wallet is a PDA on Solana.",
               },
               {
                 step: "02",
                 title: "Assign a Claude agent",
-                desc: "Your AI agent gets a keypair tied to the sub-wallet. Its tools are pre-filtered by policy — it cannot call execute_swap with forbidden tokens.",
+                desc: "Your agent gets a keypair tied to the sub-wallet. It can only trade tokens and protocols you allowed.",
               },
               {
                 step: "03",
                 title: "Monitor & optimize",
-                desc: "Watch the dashboard. Agent loses $50 on arb? Tighten the tx limit. Agent crushing it? Raise the daily cap to scale up.",
+                desc: "Watch the dashboard. Agent losing money? Lower the limits. Agent doing well? Raise the cap.",
               },
             ].map((s) => (
               <div key={s.step} className="bg-surface-800 border border-surface-600 rounded-2xl p-6 text-left">
